@@ -64,35 +64,58 @@ int main(int argc, char** argv) {
     // Setup do Benchmark
     // Em produção TT-Metal, aqui inicializariamos o device, criaríamos buffers DRAM/SRAM, etc.
     
-    // Simulação do workload
-    auto start = std::chrono::high_resolution_clock::now();
+    // Simulação do Workload (CPU Naive implementation)
+    // Inicializa dados aleatórios deterministicamente
+    std::mt19937 gen(42); 
+    std::uniform_real_distribution<> dis(-1.0, 1.0);
     
-    // Mock de computação (delay artificial se necessário para simular carga real)
-    // Para M=16, N=16, K=50K, são ~25M FLOPs. Em CPU é instantâneo.
-    volatile float sum = 0.0f;
-    for (int i = 0; i < iters; ++i) {
-        // Loop dummy para evitar otimização total do compilador no modo mock
-        for(int j=0; j<1000; ++j) sum += 1.0f; 
+    std::vector<float> A(M * K);
+    std::vector<float> B(K * N);
+    std::vector<float> C(M * N, 0.0f);
+
+    for(auto& v : A) v = dis(gen);
+    for(auto& v : B) v = dis(gen);
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    for (int iter = 0; iter < iters; ++iter) {
+        // Reset output a cada iteração para medir custo real do compute
+        std::fill(C.begin(), C.end(), 0.0f);
+        
+        // Naive MatMul: C = A * B
+        for (int m = 0; m < M; ++m) {
+            for (int n = 0; n < N; ++n) {
+                float sum = 0.0f;
+                for (int k = 0; k < K; ++k) {
+                    sum += A[m * K + k] * B[k * N + n];
+                }
+                C[m * N + n] = sum;
+            }
+        }
     }
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> duration = end - start;
     double avg_latency = duration.count() / iters;
+    
+    // Calcula Throughput (TFLOPS)
+    // 2 * M * N * K ops por iteração
+    double ops = 2.0 * M * N * K;
+    double tflops = (ops * iters) / (duration.count() / 1000.0) / 1e12;
 
-    // Output dummy para hash
-    std::vector<float> mock_output(M * N, 0.0f); 
-    std::string hash = compute_hash(mock_output);
+    std::string hash = compute_hash(C);
 
     BenchResult result;
     result.M = M;
     result.N = N;
     result.K = K;
-    result.dtype = "bf16"; // Assume BF16 do Blackhole
+    result.dtype = "bf16-cpu-ref"; 
     result.iters = iters;
     result.latency_ms_avg = avg_latency;
+    result.throughput_tflops = tflops;
     result.output_hash = hash;
-    result.config_name = "cpu_mock_baseline";
-    result.correctness_ok = true; // Simulado
+    result.config_name = "cpu_naive_baseline";
+    result.correctness_ok = true; // CPU é a referência de correção
 
     print_json(result);
 

@@ -5,10 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "bench": "tsx bench/runner.ts",
+    "bench": "npx tsx bench/runner.ts",
     "provenance": "npm run bench",
-    "upload": "tsx bonus-arweave/upload.ts",
-    "zkverify": "tsx bonus-zkverify/submit.ts",
+    "upload": "npx tsx bonus-arweave/upload.ts",
+    "zkverify": "npx tsx bonus-zkverify/submit.ts",
     "pipeline": "npm run bench && npm run upload && npm run zkverify"
   },
   "keywords": [
@@ -22,9 +22,15 @@
   "author": "UsuarioAleatorio00003",
   "license": "MIT",
   "dependencies": {
-    "@irys/upload": "^0.0.15",
-    "@irys/upload-ethereum": "^0.0.16",
-    "dotenv": "^17.2.3",
-    "zkverifyjs": "^2.1.0"
+    "dotenv": "^16.4.5",
+    "@irys/upload": "^0.0.11",
+    "@irys/upload-ethereum": "^0.0.11",
+    "zkverifyjs": "^0.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "tsx": "^4.7.1",
+    "@types/node": "^20.11.24",
+    "check-types": "^11.2.3"
   }
 }

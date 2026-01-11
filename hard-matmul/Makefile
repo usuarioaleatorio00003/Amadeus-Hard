@@ -1,4 +1,4 @@
-CXX = g++
+CXX = clang++
 CXXFLAGS = -O3 -Wall -std=c++17
 
 TARGET = matmul_bench
