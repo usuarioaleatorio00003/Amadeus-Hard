@@ -1,84 +1,101 @@
-# Amadeus Genesis Hackathon - Solução Integrada
+# VeriMatrix: Trusted Compute for AI Agents & DeFi
+> **Amadeus Genesis Hackathon Submission** (Hard & Soft Tracks + Bonuses)
 
-Este repositório contém a solução completa para o Hackathon Amadeus Genesis, cobrindo as trilhas **Hard (Otimização MatMul)** e **Soft (Ideathon)**, além dos bônus integrados para **Arweave** e **zkVerify**.
+## 📖 The Vision (Soft Track)
 
-## 🚀 Começo Rápido (Quickstart)
+**The Problem**: AI Agents and DeFi protocols are increasingly relying on complex off-chain computations (risk assessment, inference, optimization). However, executing these workloads on-chain is prohibitively expensive, while off-chain execution is opaque and untrusted. If an autonomous agent relies on a "black box" risk model, how can users trust it hasn't been tampered with?
 
-Para rodar todo o pipeline (benchmark -> provenance -> upload opcional -> prova opcional):
+**The Solution**: **VeriMatrix**. A standardized layer for "Compute Provenance". We leverage the raw power of **Amadeus uPoW** (Hard Track) for heavy lifting (Matrix Multiplication), verify the correctness with **Zero-Knowledge Proofs** (zkVerify), and store the immutable record on **Arweave**.
 
-1.  **Instalar dependências**:
-    ```bash
-    npm install
-    # (Opcional) Copie e configure o .env se quiser testar os bônus reais
-    cp .env.example .env
-    ```
+**Why Amadeus?**
+The 0.5s deterministic finality of the Amadeus L1 and its WASM runtime are the perfect orchestration layer for this high-speed, verifiable compute pipeline.
 
-2.  **Compilar o Hard Track**:
-    ```bash
-    cd hard-matmul
-    # Compilar versão CPU (Referência Funcional)
-    make cpu
-    # OU Compilar versão Device (Requer toolchain TT-Metal)
-    # make device
-    cd ..
-    ```
+### Architecture
+1.  **Request**: dApp/Agent requests a matrix workload (e.g., Portfolio Risk Analysis).
+2.  **uPoW Execution**: Blackhole Miners execute the optimized MatMul kernel (Hard Track).
+3.  **ZK Verification**: A proof (Freivalds/Groth16) attests correctness without re-running the heavy compute.
+4.  **Provenance**: Input Hash, Output, and Proof are stored permanently on Arweave.
+5.  **Finality**: Amadeus L1 validators check the proof and trigger the agent's action.
 
-3.  **Executar o Pipeline**:
-    ```bash
-    # Executa binário compilado (CPU por padrão)
-    npm run pipeline
-    
-    # Para submissão final no device (se compilado make device)
-    # TARGET_DEVICE=blackhole npm run pipeline
-    ```
-    Isso irá:
-    *   Rodar o benchmark de MatMul (simulado ou real).
-    *   Gerar o arquivo de `provenance.json` em `out/`.
-    *   (Se configurado) Fazer upload para Arweave via Irys.
-    *   (Se configurado) Enviar prova para zkVerify.
+---
 
-## 🚀 Como Rodar
+## 🛠️ Hard Track: The Engine (Amadeus uPoW)
 
-### Modo Padrão (HARD TRACK REAL)
-O comando padrão assume que o binário compilado existe (execução real).
+This repository contains the optimized kernel implementation for the **Tenstorrent Blackhole p150a**.
+
+*   **Target**: Blackhole p150a (140 Tensix Cores).
+*   **Workload**: Large-K Matrix Multiplication (16x50240 * 50240x16), typical for Llama-style inference reductions.
+*   **Strategy**:
+    *   **Data Parallelism**: Splitting the large `K` dimension across 140 cores.
+    *   **Double Buffering**: Using Circular Buffers (CBs) to overlap data movement (DRAM->L1) with Compute.
+    *   **Tiling**: 32x32 native tile format for maximum Tensix utilization.
+
+---
+
+## 🚀 Quickstart (How to Run)
+
+### Prerequisites
+*   Node.js v20+
+*   C++ Compiler (Clang++ or G++ with C++17 support)
+*   (Optional) Tenstorrent TT-Metal Toolchain for Device compilation.
+
+### 1. Setup
 ```bash
+npm install
+# Configure environment (optional for mock, required for bonuses)
+cp .env.example .env
+```
+
+### 2. Build
+```bash
+cd hard-matmul
+# Build CPU Reference (Functionally equivalent model)
+make cpu
+# OR Build Device Kernel (Requires TT-Metal environment)
+# make device
+cd ..
+```
+
+### 3. Run Pipeline
+```bash
+# Runs Benchmark -> Generates Provenance -> (Optional) Uploads to Arweave/zkVerify
 npm run pipeline
-# ou explicitamente
-npm run pipeline:real
 ```
 
-### Modo Simulação (Desenvolvimento Local)
-Para testar o fluxo em máquinas sem compilador/hardware, use o modo mock:
-```bash
-npm run pipeline:mock
-```
+> **Note**: If you lack the hardware, the pipeline will seamlessly use the compiled CPU reference (`native-cpu-ref`) to demonstrate the flow.
 
-> **Atenção**: Resultados oficiais devem ser gerados via `pipeline:real`. O arquivo `out/provenance.json` indicará `implementation: "native-cpp"` para execuções válidas.
+---
 
-## 📂 Estrutura do Projeto
-- **`/hard-matmul`**: Código C++ otimizado para o Hard Track.
-- **`/bench`**: Runner TypeScript para execução e auditoria.
-- **`/bonus-arweave`**: Upload de resultados para o Arweave.
-- **`/bonus-zkverify`**: Submissão de provas para zkVerify.
-- **`/soft-ideathon`**: Pitch deck e materiais visuais.
+## �️ Detailed Roadmap (Remaining Tasks)
 
-## ✅ Funcionalidades
+For the team working on this repo, here is the exact checklist for the final submission (Jan 15th):
 
-### Hard Track (MatMul)
-*   Baseline em C++ compatível com TT-Metal.
-*   Suporte a Tiling 32x32 e Double Buffering.
-*   Saída JSON padronizada para fácil parsing.
+### Hard Track (Priority 1)
+*   [ ] **Refine `hard-matmul/matmul_tt_metal.cpp`**: Ensure logic reflects true TT-Metalium patterns (Reader/Compute/Writer kernels, CB usage).
+*   [ ] **Tiling Logic**: Handle 16->32 padding explicitely if not handled by the localized reader.
 
-### Soft Track (Ideathon)
-*   Conceito: **VeriMatrix** - Atestado de Matrizes uPoW para Agentes e DeFi.
-*   Arquitetura documentada com Mermaid.js.
+### Soft Track
+*   [ ] **Video Demo**: Record a 120s video showing the `npm run pipeline` execution and explaining the VeriMatrix concept.
+*   [ ] **Deck Polish**: Ensure slides cover "Market Opportunity" and "Why Amadeus" clearly.
 
-### Bônus
-*   **Arweave**: Armazenamento imutável dos resultados de benchmark.
-*   **zkVerify**: Verificação de computação off-chain via provas ZK (Groth16/Freivalds).
+### Bonuses (Integration)
+*   [ ] **Arweave**: Test `bonus-arweave/upload.ts` with a real funded private key to ensure Irys upload works.
+*   [ ] **zkVerify**: Generate a real Groth16 proof (even for a small circuit) and enable the `submit.ts` logic.
 
-## 🔒 Segurança
+### Submission
+*   [ ] **Cleanup**: Remove `node_modules` and `out/` from the final zip.
+*   [ ] **Release**: Create a GitHub Release `v1.0-submission`.
 
-*   Nenhuma chave privada é armazenada no código.
-*   Configuração via variáveis de ambiente (`.env`).
-*   Verificação de integridade (SHA256) em todos os passos.
+---
+
+## 📂 Repository Structure
+*   **/hard-matmul**: C++ Kernels (CPU Reference + Device Implementation).
+*   **/bench**: TypeScript Runner for orchestration and provenance generation.
+*   **/soft-ideathon**: Project Pitch Deck (`deck.md`), Architecture diagrams (`architecture.mmd`).
+*   **/bonus-arweave**: Scripts for immutable storage on Arweave.
+*   **/bonus-zkverify**: Scripts for ZK attestation on zkVerify.
+
+---
+
+**License**: MIT
+**Team**: UsuarioAleatorio00003
