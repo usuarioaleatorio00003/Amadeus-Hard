@@ -1,0 +1,29 @@
+flowchart TD
+    subgraph "DApp / Agente (Cliente)"
+        A[Solicitação de Computação] -->|Parâmetros M,N,K| B(Runner VeriMatrix)
+    end
+
+    subgraph "Compute Layer (Hard Track)"
+        B -->|Executar Binário| C{Blackhole / Simulação}
+        C -->|MatMul Result| D[Output Raw]
+    end
+
+    subgraph "Verification Layer (Bônus)"
+        D -->|Gerar Prova| E[Prova ZK (Groth16/Freivalds)]
+        E -->|Submeter| F[zkVerify Testnet]
+        F -->|Attestation| G[Proof Receipt]
+    end
+
+    subgraph "Storage Layer (Bônus)"
+        D -->|JSON Provenance| H[Arweave / Irys]
+        G -->|Include Receipt| H
+    end
+
+    subgraph "Amadeus Network"
+        H -->|Tx ID| I[WASM Smart Contract]
+        I -->|Verificado| J[Ação on-chain Liberada]
+    end
+
+    style C fill:#f96,stroke:#333,stroke-width:2px
+    style H fill:#96f,stroke:#333,stroke-width:2px
+    style F fill:#69f,stroke:#333,stroke-width:2px

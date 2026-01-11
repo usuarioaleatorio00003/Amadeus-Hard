@@ -1,0 +1,30 @@
+{
+  "name": "amadeus-hard",
+  "version": "1.0.0",
+  "description": "Solução completa para o Hackathon Amadeus Genesis - Hard & Soft Tracks",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "bench": "tsx bench/runner.ts",
+    "provenance": "npm run bench",
+    "upload": "tsx bonus-arweave/upload.ts",
+    "zkverify": "tsx bonus-zkverify/submit.ts",
+    "pipeline": "npm run bench && npm run upload && npm run zkverify"
+  },
+  "keywords": [
+    "amadeus",
+    "hackathon",
+    "upow",
+    "matmul",
+    "zkverify",
+    "arweave"
+  ],
+  "author": "UsuarioAleatorio00003",
+  "license": "MIT",
+  "dependencies": {
+    "@irys/upload": "^0.0.15",
+    "@irys/upload-ethereum": "^0.0.16",
+    "dotenv": "^17.2.3",
+    "zkverifyjs": "^2.1.0"
+  }
+}
