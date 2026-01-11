@@ -13,18 +13,23 @@ Para rodar todo o pipeline (benchmark -> provenance -> upload opcional -> prova 
     cp .env.example .env
     ```
 
-2.  **Compilar o Hard Track** (Simulação Local):
+2.  **Compilar o Hard Track**:
     ```bash
     cd hard-matmul
-    # Se tiver g++ ou clang instalado (Windows com MinGW ou WSL/Linux)
-    make
-    # OU apenas rode o script de bench que utilizará o mock se o binário não existir
+    # Compilar versão CPU (Referência Funcional)
+    make cpu
+    # OU Compilar versão Device (Requer toolchain TT-Metal)
+    # make device
     cd ..
     ```
 
 3.  **Executar o Pipeline**:
     ```bash
+    # Executa binário compilado (CPU por padrão)
     npm run pipeline
+    
+    # Para submissão final no device (se compilado make device)
+    # TARGET_DEVICE=blackhole npm run pipeline
     ```
     Isso irá:
     *   Rodar o benchmark de MatMul (simulado ou real).

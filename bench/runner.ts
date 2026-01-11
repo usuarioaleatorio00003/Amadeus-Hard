@@ -52,15 +52,15 @@ const allowMock = process.env.ALLOW_MOCK === "1";
 
 if (!binExists) {
     if (!allowMock) {
-        console.error("⛔ [Bench] ERRO CRÍTICO: Binário C++ não encontrado.");
-        console.error("   O Hard Track exige execução real.");
-        console.error("   Para testar com simulação (apenas dev), use: ALLOW_MOCK=1 npm run bench");
-        console.error(`   Caminho esperado: ${matmulBin}`);
+        console.error("⛔ [Bench] CRITICAL ERROR: Native C++ binary not found.");
+        console.error("   The Hard Track requires REAL execution on the device/host.");
+        console.error("   To test with simulation (dev only), use: ALLOW_MOCK=1 npm run bench");
+        console.error(`   Expected path: ${matmulBin} (or .exe)`);
         process.exit(1);
     }
 
-    console.warn("⚠️ [Bench] AVISO: Binário não encontrado. Usando MOCK (ALLOW_MOCK=1).");
-    console.warn("   ISTO NÃO É VÁLIDO PARA SUBMISSÃO FINAL DO HARD TRACK.");
+    console.warn("⚠️ [Bench] WARNING: Binary not found. Using MOCK (ALLOW_MOCK=1).");
+    console.warn("   THIS IS NOT VALID FOR FINAL HARD TRACK SUBMISSION.");
 
     // Simulação do output JSON que o C++ geraria
     const mockOutput = {
@@ -78,15 +78,17 @@ if (!binExists) {
     stdout = JSON.stringify(mockOutput);
 } else {
     // Execução real do binário
-    console.log(`🚀 [Bench] Executando binário real: ${matmulBin}`);
+    console.log(`🚀 [Bench] Executing REAL binary: ${matmulBin}`);
 
+    // If running real binary, we MUST NOT use mock values.
+    // We expect the binary to output valid JSON.
     const execPath = fs.existsSync(matmulBin) ? matmulBin : matmulBin + ".exe";
     const r = spawnSync(execPath, [], { encoding: "utf-8" });
     stdout = r.stdout ?? "";
     stderr = r.stderr ?? "";
 
     if (r.status !== 0) {
-        console.error(`[Bench] Falha na execução: ${stderr || stdout}`);
+        console.error(`[Bench] Execution failed: ${stderr || stdout}`);
         process.exit(1);
     }
 }
@@ -108,6 +110,16 @@ const stdoutSha256 = createHash("sha256").update(stdout).digest("hex");
 const execPath = binExists ? (fs.existsSync(matmulBin) ? matmulBin : matmulBin + ".exe") : "mock";
 const binHash = binExists ? createHash("sha256").update(fs.readFileSync(execPath)).digest("hex") : null;
 
+// Determine implementation type accurately
+let implType = "mock-js";
+if (binExists) {
+    if (process.env.TARGET_DEVICE === "blackhole") {
+        implType = "tt-metal-blackhole";
+    } else {
+        implType = "native-cpu-ref";
+    }
+}
+
 // Monta o Provenance Record
 const provenance = {
     meta: {
@@ -118,7 +130,8 @@ const provenance = {
     timestamp: startedAt,
     git_commit: gitCommit,
     execution: {
-        implementation: binExists ? "native-cpp" : "mock-js",
+        implementation: implType,
+        target_device: process.env.TARGET_DEVICE || "cpu-local",
         binary_path: binExists ? execPath : null,
         binary_sha256: binHash,
         mock_mode: !binExists
@@ -144,3 +157,8 @@ fs.writeFileSync(provPath, JSON.stringify(provenance, null, 2), "utf-8");
 console.log(`[Bench] Artefatos gerados:`);
 console.log(`  -> ${provPath}`);
 console.log(`  -> ${stdoutPath}`);
+if (implType === "tt-metal-blackhole") {
+    console.log("🌟 [Bench] VALID SUBMISSION CANDIDATE (Target: Blackhole)");
+} else if (implType === "native-cpu-ref") {
+    console.log("ℹ️ [Bench] Running in CPU Reference Mode (Not Device).");
+}
