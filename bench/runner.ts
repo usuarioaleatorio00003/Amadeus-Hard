@@ -10,8 +10,6 @@ type BenchResult = Record<string, unknown>;
 function sh(cmd: string, args: string[]) {
     const r = spawnSync(cmd, args, { encoding: "utf-8" });
     if (r.status !== 0) {
-        // Não falha silenciosamente, mas retorna string vazia ou erro controlado pode ser melhor
-        // Aqui vamos retornar vazio se falhar (ex: git num diretorio sem git)
         return "";
     }
     return (r.stdout ?? "").trim();
@@ -31,9 +29,6 @@ function safeJsonLineParse(s: string): any | null {
 }
 
 const matmulBin = process.argv[2] ?? path.join("hard-matmul", "matmul_bench.exe");
-// Nota: no Windows pode precisar de .exe, no Linux não. O makefile gera matmul_bench.exe no Windows com MinGW?
-// Vamos tentar detectar ou usar o path relativo padrão.
-
 const outDir = process.argv[3] ?? "out";
 
 // Garante diretório de saída
@@ -51,12 +46,21 @@ console.log(`[Bench] Iniciando execução do binário: ${matmulBin}`);
 let stdout = "";
 let stderr = "";
 
-// Verifica se existe binário ou fallback
+// Verifica se existe binário
 const binExists = fs.existsSync(matmulBin) || fs.existsSync(matmulBin + ".exe");
+const allowMock = process.env.ALLOW_MOCK === "1";
 
 if (!binExists) {
-    console.warn("[Bench] AVISO: Binário C++ não encontrado (g++/make ausentes?).");
-    console.warn("[Bench] USANDO MOCK DE SIMULAÇÃO EM JAVASCRIPT para validar o pipeline.");
+    if (!allowMock) {
+        console.error("⛔ [Bench] ERRO CRÍTICO: Binário C++ não encontrado.");
+        console.error("   O Hard Track exige execução real.");
+        console.error("   Para testar com simulação (apenas dev), use: ALLOW_MOCK=1 npm run bench");
+        console.error(`   Caminho esperado: ${matmulBin}`);
+        process.exit(1);
+    }
+
+    console.warn("⚠️ [Bench] AVISO: Binário não encontrado. Usando MOCK (ALLOW_MOCK=1).");
+    console.warn("   ISTO NÃO É VÁLIDO PARA SUBMISSÃO FINAL DO HARD TRACK.");
 
     // Simulação do output JSON que o C++ geraria
     const mockOutput = {
@@ -65,7 +69,7 @@ if (!binExists) {
         K: 50240,
         dtype: "bf16-mock",
         iters: 10,
-        latency_ms_avg: 12.5, // Valor fictício
+        latency_ms_avg: 12.5,
         throughput_tflops: 0,
         output_hash: "mock-js-hash-12345",
         config_name: "js_fallback_simulation",
@@ -74,7 +78,8 @@ if (!binExists) {
     stdout = JSON.stringify(mockOutput);
 } else {
     // Execução real do binário
-    console.log(`[Bench] Executando binário: ${matmulBin}`);
+    console.log(`🚀 [Bench] Executando binário real: ${matmulBin}`);
+
     const execPath = fs.existsSync(matmulBin) ? matmulBin : matmulBin + ".exe";
     const r = spawnSync(execPath, [], { encoding: "utf-8" });
     stdout = r.stdout ?? "";
@@ -99,15 +104,25 @@ console.log("[Bench] Sucesso! Métricas capturadas.");
 // Hashes de integridade
 const stdoutSha256 = createHash("sha256").update(stdout).digest("hex");
 
+// Identifica contexto
+const execPath = binExists ? (fs.existsSync(matmulBin) ? matmulBin : matmulBin + ".exe") : "mock";
+const binHash = binExists ? createHash("sha256").update(fs.readFileSync(execPath)).digest("hex") : null;
+
 // Monta o Provenance Record
 const provenance = {
     meta: {
         project: "Amadeus Genesis Hackathon",
         track: "Hard + Soft",
-        team: "UsuarioAleatorio00003" // Placeholder
+        team: "UsuarioAleatorio00003"
     },
     timestamp: startedAt,
     git_commit: gitCommit,
+    execution: {
+        implementation: binExists ? "native-cpp" : "mock-js",
+        binary_path: binExists ? execPath : null,
+        binary_sha256: binHash,
+        mock_mode: !binExists
+    },
     environment: {
         platform: process.platform,
         arch: process.arch,

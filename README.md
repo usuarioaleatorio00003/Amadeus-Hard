@@ -32,13 +32,30 @@ Para rodar todo o pipeline (benchmark -> provenance -> upload opcional -> prova 
     *   (Se configurado) Fazer upload para Arweave via Irys.
     *   (Se configurado) Enviar prova para zkVerify.
 
-## 📂 Estrutura do Projeto
+## 🚀 Como Rodar
 
-*   `/hard-matmul`: Implementação em C++ para o acelerador Blackhole (TT-Metalium). Inclui modo de simulação para desenvolvimento local.
-*   `/soft-ideathon`: Pitch deck, diagramas de arquitetura e roteiros.
-*   `/bench`: Scripts para orquestrar a execução e gerar registros de proveniência (provenance).
-*   `/bonus-arweave`: Scripts de integração para armazenamento permanente no Arweave.
-*   `/bonus-zkverify`: Scripts para geração e verificação de provas Zero-Knowledge.
+### Modo Padrão (HARD TRACK REAL)
+O comando padrão assume que o binário compilado existe (execução real).
+```bash
+npm run pipeline
+# ou explicitamente
+npm run pipeline:real
+```
+
+### Modo Simulação (Desenvolvimento Local)
+Para testar o fluxo em máquinas sem compilador/hardware, use o modo mock:
+```bash
+npm run pipeline:mock
+```
+
+> **Atenção**: Resultados oficiais devem ser gerados via `pipeline:real`. O arquivo `out/provenance.json` indicará `implementation: "native-cpp"` para execuções válidas.
+
+## 📂 Estrutura do Projeto
+- **`/hard-matmul`**: Código C++ otimizado para o Hard Track.
+- **`/bench`**: Runner TypeScript para execução e auditoria.
+- **`/bonus-arweave`**: Upload de resultados para o Arweave.
+- **`/bonus-zkverify`**: Submissão de provas para zkVerify.
+- **`/soft-ideathon`**: Pitch deck e materiais visuais.
 
 ## ✅ Funcionalidades
 
